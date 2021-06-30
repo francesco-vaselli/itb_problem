@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from statsmodels.tsa.stattools import acf
 import statsmodels.api as sm
-from scipy.stats import kurtosis, skew, kstest
-from scipy.signal import correlate
+from scipy.stats import kurtosis, skew, kstest, moment
+from scipy.signal import correlate, get_window, tukey
 
 def estimated_autocorrelation(x):
     n = len(x)
@@ -20,12 +20,32 @@ if __name__=='__main__':
     t0 = 1126257415
     t1 = 1126259462.4 
     data = np.loadtxt('data/H-H1_GWOSC_4KHZ_R1-1126257415-4096.txt')
-    c = int(len(data)/100000)
-    kstest(data[c*2:c*3], data[c:2*c])
+    c = int(len(data)/8000)
+    x = np.linspace(0, 0.5, num=c)
+    plt.plot(x, data[c:c*2])
+    plt.plot(x, data[80000:c+80000])
+    plt.ylabel("[strain]")
+    plt.xlabel("Time [s]")
+    plt.title("Comparison of short time intervals")
+    plt.show()
 
-    for k in np.array_split(data, 5):
-        for j in np.array_split(data, 5):
-            kstest(k, j)
+    kstest(data[c:c*2], 'norm')
+
+    mean = []
+    std = []
+    skew_l = []
+    kurtosis_l = []
+    moment_3 = []
+    for k in np.array_split(data, 16):
+        mean.append(np.mean(k))
+        std.append(np.std(k))
+        skew_l.append(skew(k))
+        kurtosis_l.append(kurtosis(k))
+        moment_3.append(moment(k, 4))
+        # for j in np.array_split(data, 5):
+        #     kstest(k, j)
+    plt.plot(moment_3)
+    plt.show()
 
     data1 = data
 
@@ -40,10 +60,20 @@ if __name__=='__main__':
     plt.show()
 
     corr = correlate(data, data1, method='fft')
-
+    arr = plt.acorr(data, maxlags=10000)
+    plt.plot(arr)
+    plt.show()
     strain = TimeSeries(data, t0=t0, sample_rate=4096, unit='strain')
-    specgram = strain1.spectrogram2(fftlength=4, overlap=2, window='hann') ** (1/2.)
-    plot = specgram.plot()
+
+    lasd2 = strain.asd(fftlength=4, method="median")
+    plot = lasd2.plot()
+    ax = plot.gca()
+    ax.set_xlim(10, 1400)
+    ax.set_ylim(1e-24, 1e-20)
+    plot.show(warn=False)
+
+    psd = strain.psd(fftlength=4*4096, overlap=2*4096, window=tukey(4*4096, alpha=1./4))
+    plot = psd.plot()
     ax = plot.gca()
     ax.set_yscale('log')
     ax.set_ylim(10, 1400)
