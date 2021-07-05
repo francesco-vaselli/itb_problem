@@ -47,7 +47,7 @@ def plot_psd_comparison(data):
     plt.plot(nowin_freqs[1:], inverse_square * scale,'green',
                 label= r'$1 / f^2$', alpha=.8, linewidth=1)
 
-    plt.axis([20, 512, 1e-47, 1e-40])
+    plt.axis([20, 1024, 1e-47, 1e-40])
     plt.ylabel(r'S$_n$(t)')
     plt.xlabel('Freq (Hz)')
     # ax.minorticks_on()
@@ -59,8 +59,11 @@ def plot_psd_comparison(data):
 
     acf_array = acf(Pxx_H1, fft=True, nlags=50)
     acf_nowin = acf(nowin_freqs, fft=True, nlags=50)
+    print(np.where(freqs==50), np.where(freqs==512)[0])
+    acf_small = acf(Pxx_H1[np.where(freqs==50)[0][0] : np.where(freqs==512)[0][0]], fft=True, nlags=50)
     plt.plot(acf_array, label='Windowed')
     plt.plot(acf_nowin, label='Leakage')
+    plt.plot(acf_small, label='Windowed+Restricted')
     plt.ylabel('Normalized ACF')
     plt.xlabel('Lag')
     plt.legend(loc='best')
